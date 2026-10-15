@@ -3,7 +3,6 @@ import { ok, fail, fromZodError } from "@/lib/api";
 import { prisma } from "@/lib/db";
 import { requireAdmin, auditLog } from "@/lib/auth";
 import { applicationStatusSchema } from "@/lib/validation";
-import { getResumeDownloadUrl } from "@/lib/storage";
 import { ZodError } from "zod";
 
 export const runtime = "nodejs";
@@ -25,14 +24,6 @@ export async function GET(
   });
   if (!application) return fail("Application not found.", 404);
 
-  // Generate a fresh, time-limited resume link for the admin.
-  let resumeUrl: string | null = null;
-  try {
-    resumeUrl = await getResumeDownloadUrl(application.resumeKey);
-  } catch {
-    resumeUrl = null;
-  }
-
   await auditLog({
     actorId: admin.sub,
     action: "application.view",
@@ -40,7 +31,8 @@ export async function GET(
     entityId: application.id,
   });
 
-  return ok({ application, resumeUrl });
+  // resumeUrl lives directly on the application record now.
+  return ok({ application, resumeUrl: application.resumeUrl });
 }
 
 export async function PATCH(

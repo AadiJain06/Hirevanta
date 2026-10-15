@@ -29,11 +29,13 @@ export const applicationSchema = z.object({
   }),
   // Linkage
   jobId: z.string().trim().max(60).optional().or(z.literal("")),
-  // Resume reference (set after upload)
-  resumeKey: trimmed(400).min(1, "A resume file is required."),
-  resumeFilename: trimmed(260).min(1),
-  resumeMime: trimmed(160).min(1),
-  resumeSize: z.coerce.number().int().positive(),
+  // Resume: a shareable link (Google Drive, Dropbox, OneDrive, etc.)
+  resumeUrl: trimmed(600)
+    .min(1, "Please add a link to your résumé.")
+    .url("Please enter a valid résumé link (e.g. a Google Drive URL).")
+    .refine((v) => /^https?:\/\//i.test(v), {
+      message: "The résumé link must start with http:// or https://.",
+    }),
   // Honeypot (must be empty)
   website: z.string().max(0).optional().or(z.literal("")),
 });

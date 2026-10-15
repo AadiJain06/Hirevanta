@@ -43,7 +43,6 @@ describe("application email", () => {
       jobTitle: null,
       submittedAt: new Date("2026-01-01T00:00:00Z"),
       resumeUrl: "https://example.com/resume",
-      resumeFilename: "cv.pdf",
     });
     expect(html).toContain("ada@example.com");
     expect(html).toContain("&lt;b&gt;Ada&lt;/b&gt;");

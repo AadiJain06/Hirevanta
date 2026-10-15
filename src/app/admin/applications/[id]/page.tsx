@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, Mail, Phone, MapPin, Linkedin, Briefcase } from "lucide-react";
+import { ArrowLeft, ExternalLink, Mail, Phone, MapPin, Linkedin, FileText } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { getResumeDownloadUrl } from "@/lib/storage";
 import { formatDate } from "@/lib/utils";
 import { ApplicationControls } from "@/components/admin/ApplicationControls";
 
@@ -23,13 +22,6 @@ export default async function ApplicationDetail({
     },
   });
   if (!app) notFound();
-
-  let resumeUrl: string | null = null;
-  try {
-    resumeUrl = await getResumeDownloadUrl(app.resumeKey);
-  } catch {
-    resumeUrl = null;
-  }
 
   const latestEmail = app.emailLogs[0] ?? null;
 
@@ -94,29 +86,24 @@ export default async function ApplicationDetail({
           <div className="glass rounded-2xl p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Résumé</h2>
             <div className="mt-3 flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-violetx/15 text-violetx-soft">
-                <Briefcase className="h-5 w-5" />
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violetx/15 text-violetx-soft">
+                <FileText className="h-5 w-5" />
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-white">{app.resumeFilename}</p>
-                <p className="text-xs text-slate-500">{(app.resumeSize / 1024).toFixed(0)} KB</p>
-              </div>
+              <p className="min-w-0 flex-1 truncate text-sm text-slate-300" title={app.resumeUrl}>
+                {app.resumeUrl}
+              </p>
             </div>
-            {resumeUrl ? (
-              <a
-                href={resumeUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-glow"
-              >
-                <Download className="h-4 w-4" />
-                Download résumé
-              </a>
-            ) : (
-              <p className="mt-4 text-xs text-rose-400">Résumé link unavailable.</p>
-            )}
+            <a
+              href={app.resumeUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-glow"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open résumé link
+            </a>
             <p className="mt-2 text-[11px] text-slate-600">
-              Access-controlled link{resumeUrl?.startsWith("http") ? " (expires for security)" : ""}.
+              Candidate-provided link. Verify its sharing permissions before relying on it.
             </p>
           </div>
 

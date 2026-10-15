@@ -1,10 +1,10 @@
 # HireVanta — Recruitment & Talent Acquisition Platform
 
-A production-ready recruitment agency website with a premium, futuristic UI and genuinely functional hiring workflows: job listings, a multi-step candidate application with secure résumé upload, employer inquiries, transactional email notifications, a protected admin dashboard, and persistent storage.
+A production-ready recruitment agency website with a premium, futuristic UI and genuinely functional hiring workflows: job listings, a multi-step candidate application with a résumé link (Google Drive / Dropbox / etc.), a contact form, transactional email notifications, a protected admin dashboard, and database persistence.
 
-Built with **Next.js (App Router) · React · TypeScript · Tailwind CSS · Framer Motion · Prisma (PostgreSQL) · Zod · Resend/SMTP · S3-compatible storage**.
+Built with **Next.js (App Router) · React · TypeScript · Tailwind CSS · Framer Motion · Prisma (PostgreSQL) · Zod · Resend/SMTP**.
 
-All applications and inquiries are delivered to **hirevanta0@gmail.com** (configurable via `NOTIFY_EMAIL`).
+All applications and contact messages are delivered to **hirevanta0@gmail.com** (configurable via `NOTIFY_EMAIL`).
 
 ---
 
@@ -12,11 +12,11 @@ All applications and inquiries are delivered to **hirevanta0@gmail.com** (config
 
 - **Immersive marketing site** — animated hero with a talent-network visualization, glassmorphism, gradient orbs, scroll-reveal animations, custom cursor (desktop), toast notifications, back-to-top, and a page-load transition. Respects `prefers-reduced-motion`.
 - **Job listings** — search + filters (location, employment type, experience level), responsive cards, details modal, loading/empty/error states. Ships with clearly flagged **sample** data.
-- **Multi-step application form** — personal → professional → résumé → review, with inline validation, drag-and-drop upload, progress bar, and an animated success screen.
-- **Secure résumé upload** — PDF/DOCX only, size limit, extension + MIME + **magic-byte signature** checks on the server. Files go to **private** storage; links are access-controlled and time-limited.
+- **Multi-step application form** — personal → professional → résumé → review, with inline validation, a progress bar, and an animated success screen.
+- **Résumé link** — candidates submit a shareable URL (Google Drive, Dropbox, OneDrive, or a direct PDF). Validated as a proper URL; no file storage needed.
 - **Email notifications** — professional HTML templates, provider-agnostic (Resend / SMTP / console), with **delivery status tracked in the DB** and an admin **retry** path. Failed sends never lose the submission.
-- **Employer inquiry form** — saved first, then notified; confirmation only after persistence.
-- **Admin dashboard** — JWT-cookie auth, applications list/detail, status workflow, résumé download, employer inquiries, job CRUD/publish, failed-email retry, CSV export, and audit logging. Protected by middleware **and** per-route server checks.
+- **Contact form** — saved first, then notified; confirmation only after persistence.
+- **Admin dashboard** — JWT-cookie auth, applications list/detail, status workflow, résumé link, contact messages, job CRUD/publish, failed-email retry, CSV export, and audit logging. Protected by middleware **and** per-route server checks.
 - **Security** — server-side validation, honeypot + rate limiting, hashed IPs, duplicate-submission protection, CSRF-resistant same-site cookies, XSS-safe email rendering, parameterized queries via Prisma, and security headers.
 - **SEO** — metadata, Open Graph image, sitemap, robots, favicon, and Organization structured data.
 - **Tests** — Vitest coverage for validation, file validation, email templating/escaping, request hashing, and auth primitives.
@@ -27,7 +27,7 @@ All applications and inquiries are delivered to **hirevanta0@gmail.com** (config
 
 - **Node.js 18.18+** (or 20+)
 - **PostgreSQL 13+** (local or hosted — e.g. Neon, Supabase, RDS)
-- Optional for production email/storage: a Resend or SMTP account, and an S3-compatible bucket.
+- Optional for production email: a Resend or SMTP account. No file storage is needed (résumés are links).
 
 ---
 
@@ -41,7 +41,7 @@ npm install
 cp .env.example .env
 #   (Windows PowerShell: Copy-Item .env.example .env)
 
-# 3. Fill in DATABASE_URL (and optionally email/storage) in .env
+# 3. Fill in DATABASE_URL (and optionally email) in .env
 
 # 4. Apply the database schema
 npm run prisma:migrate      # creates tables (dev)
@@ -56,7 +56,7 @@ npm run dev
 
 Visit **http://localhost:3000** for the site and **http://localhost:3000/admin** for the dashboard.
 
-With the default `EMAIL_PROVIDER=console` and `STORAGE_PROVIDER=local`, the full flow works end-to-end locally with **no external accounts** — emails are logged to the server console and résumés are stored under `./.storage`.
+With the default `EMAIL_PROVIDER=console`, the full flow works end-to-end locally with **no external accounts** — emails are logged to the server console, and résumés are just links candidates paste in.
 
 ---
 
@@ -76,11 +76,6 @@ Copy `.env.example` to `.env` and fill in real values. Summary:
 | `EMAIL_FROM` | yes (resend/smtp) | Verified sender address. |
 | `RESEND_API_KEY` | if resend | Resend API key. |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASSWORD` | if smtp | SMTP credentials. For Gmail use an **App Password**. |
-| `STORAGE_PROVIDER` | yes | `local` \| `s3`. |
-| `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | if s3 | S3-compatible storage. |
-| `S3_ENDPOINT` / `S3_FORCE_PATH_STYLE` | no | For R2 / MinIO / B2. |
-| `S3_SIGNED_URL_TTL` | no | Résumé link lifetime in seconds (default 900). |
-| `MAX_UPLOAD_BYTES` | no | Max résumé size (default 5 MB). |
 | `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW` | no | Public form rate limiting. |
 
 **Never commit `.env`.** No secret is ever referenced from client code — all secrets are read server-side only (`src/lib/env.ts`).
@@ -101,12 +96,11 @@ Application email subject format: `New HireVanta Application — [Candidate Name
 
 ---
 
-## Storage configuration
+## Résumés
 
-- **`local`** (default) — résumés saved under `./.storage` (gitignored). Served only through the authenticated admin route `/api/admin/resumes`. Never public.
-- **`s3`** — any S3-compatible bucket (AWS S3, Cloudflare R2, MinIO, Backblaze B2). Objects are **private**; the admin dashboard and email links use short-lived presigned URLs.
+Candidates submit a **shareable résumé link** (Google Drive, Dropbox, OneDrive, or a direct PDF URL) rather than uploading a file. The link is validated as a proper URL, stored on the application record, shown in the admin dashboard, and included in the notification email. There is **no file storage to configure** — this keeps hosting (e.g. Netlify) simple since the serverless filesystem is ephemeral.
 
-Only the storage **key** is stored in the database — never a public URL.
+Admins should treat résumé links as candidate-provided and verify sharing permissions before relying on them.
 
 ---
 
@@ -131,7 +125,7 @@ Sample jobs are flagged `isSample = true` and labeled **Sample** in the UI — t
 - URL: `/admin` (redirects to `/admin/login` when unauthenticated).
 - Sign in with the seeded `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 - Access control is enforced by **`src/middleware.ts`** (edge JWT check) **and** by `requireAdmin()` inside every admin API route — the dashboard is not merely hidden by URL.
-- Capabilities: review applications, filter/search, change status (New → Under Review → Shortlisted → Interview → Hired → Rejected), download résumés via time-limited links, view employer inquiries, manage/publish job listings, retry failed emails, and export applications to CSV. Sensitive actions are written to `AuditLog`.
+- Capabilities: review applications, filter/search, change status (New → Under Review → Shortlisted → Interview → Hired → Rejected), open the candidate's résumé link, view contact messages, manage/publish job listings, retry failed emails, and export applications to CSV. Sensitive actions are written to `AuditLog`.
 
 ---
 
@@ -142,7 +136,7 @@ npm run test        # run once
 npm run test:watch  # watch mode
 ```
 
-Covers: Zod validation schemas, résumé file validation (size/extension/MIME/magic-byte), email subject/HTML templating and XSS escaping, request IP hashing + dedupe determinism, and auth primitives (bcrypt verification, JWT sign/verify + tamper rejection).
+Covers: Zod validation schemas (including résumé-link URL validation), email subject/HTML templating and XSS escaping, request IP hashing + dedupe determinism, and auth primitives (bcrypt verification, JWT sign/verify + tamper rejection).
 
 ---
 
@@ -161,24 +155,23 @@ Also available: `npm run lint` and `npm run typecheck`.
 
 1. Provision a PostgreSQL database and set `DATABASE_URL`.
 2. Set all required env vars on your host (see table above). Set `NEXT_PUBLIC_APP_URL` to your real domain and a strong `AUTH_SECRET`.
-3. Choose production `EMAIL_PROVIDER` (`resend` or `smtp`) and `STORAGE_PROVIDER=s3`.
+3. Choose production `EMAIL_PROVIDER` (`resend` or `smtp`). No storage config needed.
 4. Run migrations during release: `npm run prisma:deploy`.
 5. Seed the first admin once: `npm run db:seed` (or create the admin manually).
 6. Build and start: `npm run build && npm run start`.
 
-**On Vercel:** add the env vars in Project Settings, set the build command to `prisma generate && next build` (already the default `build` script), and run `prisma migrate deploy` as a release step. Use a managed Postgres (Neon/Supabase) and S3-compatible storage; the `console` email/`local` storage providers are for local development only.
+**On Netlify:** the included `netlify.toml` sets the build command (`prisma generate && prisma migrate deploy && next build`) and the official `@netlify/plugin-nextjs`. Add the env vars in Site configuration → Environment variables, connect the Git repo, and deploy. Use a managed Postgres (Neon/Supabase). Because résumés are links, there's **no object storage to set up** — a good fit for Netlify's ephemeral filesystem. The same approach works on Vercel.
 
 ---
 
 ## External services that still need credentials
 
-The app runs fully locally with no external accounts. For real email delivery and durable résumé storage in production, provide:
+The app runs fully locally with no external accounts. For production, provide:
 
 - **Email:** a Resend API key **or** SMTP credentials (e.g. a Gmail App Password).
-- **Storage:** an S3-compatible bucket + access keys.
 - **Database:** a PostgreSQL instance.
 
-Until these are configured, the app transparently falls back to console email + local file storage.
+No file storage is required — résumés are candidate-provided links. Until email is configured, the app falls back to the `console` provider (logs to the server console).
 
 ---
 
@@ -195,7 +188,7 @@ src/
     admin/         Dashboard UI
     ui/            Reusable primitives (Button, Modal, Toast, Reveal, …)
     brand/         Logo
-  lib/             env, db, auth, validation, email, storage, rate-limit, utils
+  lib/             env, db, auth, validation, email, notifications, rate-limit, utils
   middleware.ts    Admin route protection
 tests/             Vitest suites
 ```

@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, CheckCircle2, PartyPopper, Loader2 } from "lucide-react";
-import { ResumeUpload, type UploadedResume } from "./ResumeUpload";
+import { ArrowLeft, ArrowRight, CheckCircle2, PartyPopper, Loader2, Link2, Info } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import type { JobDTO } from "@/lib/types";
 
@@ -26,6 +25,7 @@ interface FormState {
   employmentStatus: string;
   expectedSalary: string;
   noticePeriod: string;
+  resumeUrl: string;
   coverLetter: string;
   consent: boolean;
 }
@@ -42,6 +42,7 @@ const initial = (job?: JobDTO | null): FormState => ({
   employmentStatus: "",
   expectedSalary: "",
   noticePeriod: "",
+  resumeUrl: "",
   coverLetter: "",
   consent: false,
 });
@@ -50,7 +51,6 @@ export function ApplicationForm({ job, onDone }: Props) {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(initial(job));
-  const [resume, setResume] = useState<UploadedResume | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -75,7 +75,9 @@ export function ApplicationForm({ job, onDone }: Props) {
       if (form.skills.trim().length < 2) e.skills = "List your key skills.";
     }
     if (s === 2) {
-      if (!resume) e.resume = "Please upload your résumé (PDF or DOCX).";
+      if (!form.resumeUrl.trim()) e.resumeUrl = "Please add a link to your résumé.";
+      else if (!/^https?:\/\/\S+\.\S+/.test(form.resumeUrl.trim()))
+        e.resumeUrl = "Enter a valid link (starting with https://).";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -93,9 +95,9 @@ export function ApplicationForm({ job, onDone }: Props) {
       setErrors({ consent: "You must consent to continue." });
       return;
     }
-    if (!resume) {
+    if (!form.resumeUrl.trim()) {
       setStep(2);
-      setErrors({ resume: "Please upload your résumé." });
+      setErrors({ resumeUrl: "Please add a link to your résumé." });
       return;
     }
     setSubmitting(true);
@@ -106,10 +108,7 @@ export function ApplicationForm({ job, onDone }: Props) {
         body: JSON.stringify({
           ...form,
           jobId: job?.id ?? "",
-          resumeKey: resume.key,
-          resumeFilename: resume.filename,
-          resumeMime: resume.mime,
-          resumeSize: resume.size,
+          resumeUrl: form.resumeUrl.trim(),
           website: honeypot,
         }),
       });
@@ -262,13 +261,28 @@ export function ApplicationForm({ job, onDone }: Props) {
 
           {step === 2 && (
             <div>
-              <label className="label-base">
-                Résumé <span className="text-rose-400">*</span>
-              </label>
-              <ResumeUpload value={resume} onChange={setResume} />
-              {errors.resume && (
-                <p className="mt-2 text-sm text-rose-400" role="alert">{errors.resume}</p>
-              )}
+              <Field label="Résumé link" required error={errors.resumeUrl}>
+                <div className="relative">
+                  <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="url"
+                    inputMode="url"
+                    className="input-base pl-9"
+                    placeholder="https://drive.google.com/..."
+                    value={form.resumeUrl}
+                    onChange={(e) => set("resumeUrl", e.target.value)}
+                  />
+                </div>
+              </Field>
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-slate-400">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-violetx-soft" />
+                <p>
+                  Paste a shareable link to your résumé (Google Drive, Dropbox,
+                  OneDrive, or a PDF URL). Make sure sharing is set to{" "}
+                  <span className="text-slate-200">“anyone with the link can view”</span>{" "}
+                  so our team can open it.
+                </p>
+              </div>
               <div className="mt-5">
                 <Field label="Cover letter / short introduction" error={errors.coverLetter}>
                   <textarea className="input-base min-h-[120px]" placeholder="Tell us a little about yourself (optional)" value={form.coverLetter} onChange={(e) => set("coverLetter", e.target.value)} />
@@ -287,7 +301,7 @@ export function ApplicationForm({ job, onDone }: Props) {
                 <Review label="Position" value={form.position} />
                 <Review label="Experience" value={form.experience} />
                 <Review label="Skills" value={form.skills} />
-                <Review label="Résumé" value={resume?.filename ?? "—"} />
+                <Review label="Résumé" value={form.resumeUrl || "—"} />
               </div>
               <label className="flex items-start gap-3 text-sm text-slate-300">
                 <input

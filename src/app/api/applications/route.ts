@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       return ok({ id: "ignored" });
     }
 
-    const dedupe = dedupeHash([data.email, data.position, data.resumeKey]);
+    const dedupe = dedupeHash([data.email, data.position, data.resumeUrl]);
 
     const existing = await prisma.application.findUnique({
       where: { dedupeHash: dedupe },
@@ -64,10 +64,7 @@ export async function POST(req: NextRequest) {
         noticePeriod: data.noticePeriod || null,
         coverLetter: data.coverLetter || null,
         consent: data.consent,
-        resumeKey: data.resumeKey,
-        resumeFilename: data.resumeFilename,
-        resumeMime: data.resumeMime,
-        resumeSize: data.resumeSize,
+        resumeUrl: data.resumeUrl,
         jobId,
         ipHash: hashIp(ip),
         dedupeHash: dedupe,

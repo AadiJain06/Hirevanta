@@ -115,11 +115,8 @@ model Application {
   // Additional
   coverLetter       String?
   consent           Boolean           @default(false)
-  // Resume (stored securely, key only — never public)
-  resumeKey         String
-  resumeFilename    String
-  resumeMime        String
-  resumeSize        Int
+  // Resume (candidate-provided shareable link, e.g. Google Drive / Dropbox)
+  resumeUrl         String
   // Linkage + workflow
   job               Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
   jobId             String?

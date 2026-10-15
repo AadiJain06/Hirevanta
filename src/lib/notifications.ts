@@ -7,7 +7,6 @@ import {
   contactEmailSubject,
   renderContactEmail,
 } from "./email-templates";
-import { getResumeDownloadUrl } from "./storage";
 
 /**
  * Send + log an application notification. The application is already persisted;
@@ -31,14 +30,6 @@ export async function notifyApplication(applicationId: string): Promise<boolean>
     },
   });
 
-  let resumeUrl = `${env.appUrl}/admin/applications/${app.id}`;
-  try {
-    const direct = await getResumeDownloadUrl(app.resumeKey);
-    resumeUrl = direct.startsWith("http") ? direct : `${env.appUrl}${direct}`;
-  } catch {
-    // Fall back to the admin detail page link.
-  }
-
   const html = renderApplicationEmail({
     fullName: app.fullName,
     email: app.email,
@@ -54,8 +45,7 @@ export async function notifyApplication(applicationId: string): Promise<boolean>
     coverLetter: app.coverLetter,
     jobTitle: app.job?.title ?? null,
     submittedAt: app.createdAt,
-    resumeUrl,
-    resumeFilename: app.resumeFilename,
+    resumeUrl: app.resumeUrl,
   });
 
   return deliver(log.id, { to: env.notifyEmail, subject, html, replyTo: app.email });
@@ -100,13 +90,6 @@ export async function retryEmail(emailLogId: string): Promise<boolean> {
 
   if (log.kind === "APPLICATION" && log.application) {
     const app = log.application;
-    let resumeUrl = `${env.appUrl}/admin/applications/${app.id}`;
-    try {
-      const direct = await getResumeDownloadUrl(app.resumeKey);
-      resumeUrl = direct.startsWith("http") ? direct : `${env.appUrl}${direct}`;
-    } catch {
-      /* keep fallback */
-    }
     html = renderApplicationEmail({
       fullName: app.fullName,
       email: app.email,
@@ -122,8 +105,7 @@ export async function retryEmail(emailLogId: string): Promise<boolean> {
       coverLetter: app.coverLetter,
       jobTitle: app.job?.title ?? null,
       submittedAt: app.createdAt,
-      resumeUrl,
-      resumeFilename: app.resumeFilename,
+      resumeUrl: app.resumeUrl,
     });
     replyTo = app.email;
   } else if (log.kind === "CONTACT" && log.contact) {

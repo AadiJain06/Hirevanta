@@ -27,7 +27,7 @@ export async function GET() {
     "experience",
     "skills",
     "status",
-    "resumeFilename",
+    "resumeUrl",
   ];
 
   const escape = (v: unknown) => {
@@ -48,7 +48,7 @@ export async function GET() {
       a.experience,
       a.skills,
       a.status,
-      a.resumeFilename,
+      a.resumeUrl,
     ]
       .map(escape)
       .join(","),

@@ -16,10 +16,7 @@ const validApplication = {
   experience: "8 years",
   skills: "TypeScript, React, Node.js",
   consent: true,
-  resumeKey: "resumes/2026/01/abc-cv.pdf",
-  resumeFilename: "cv.pdf",
-  resumeMime: "application/pdf",
-  resumeSize: 12345,
+  resumeUrl: "https://drive.google.com/file/d/abc123/view",
 };
 
 describe("applicationSchema", () => {
@@ -38,9 +35,22 @@ describe("applicationSchema", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("requires a resume key", () => {
-    const parsed = applicationSchema.safeParse({ ...validApplication, resumeKey: "" });
+  it("requires a résumé link", () => {
+    const parsed = applicationSchema.safeParse({ ...validApplication, resumeUrl: "" });
     expect(parsed.success).toBe(false);
+  });
+
+  it("rejects a résumé value that is not a valid URL", () => {
+    const parsed = applicationSchema.safeParse({ ...validApplication, resumeUrl: "my-resume.pdf" });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("accepts a valid https résumé link", () => {
+    const parsed = applicationSchema.safeParse({
+      ...validApplication,
+      resumeUrl: "https://www.dropbox.com/s/xyz/cv.pdf",
+    });
+    expect(parsed.success).toBe(true);
   });
 
   it("allows an empty optional linkedin", () => {

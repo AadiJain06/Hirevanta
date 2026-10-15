@@ -76,7 +76,6 @@ export interface ApplicationEmailData {
   jobTitle?: string | null;
   submittedAt: Date;
   resumeUrl: string;
-  resumeFilename: string;
 }
 
 export function applicationEmailSubject(name: string, position: string): string {
@@ -104,10 +103,13 @@ export function renderApplicationEmail(d: ApplicationEmailData): string {
   const resumeBtn = `<tr><td colspan="2" style="padding:18px 0 6px;">
     <a href="${escapeHtml(d.resumeUrl)}"
        style="display:inline-block;background:${BRAND};color:#fff;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px;">
-       Download résumé (${escapeHtml(d.resumeFilename)})
+       Open résumé link
     </a>
-    <div style="color:${MUTED};font-size:12px;margin-top:8px;">
-      This link is access-controlled and may expire for security.
+    <div style="color:${MUTED};font-size:12px;margin-top:8px;word-break:break-all;">
+      ${escapeHtml(d.resumeUrl)}
+    </div>
+    <div style="color:${MUTED};font-size:12px;margin-top:6px;">
+      Candidate-provided link. Open with care and verify sharing permissions.
     </div>
   </td></tr>`;
 

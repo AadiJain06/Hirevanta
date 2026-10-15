@@ -37,30 +37,7 @@ export const env = {
     password: process.env.SMTP_PASSWORD ?? "",
   },
 
-  // Storage
-  storageProvider: (process.env.STORAGE_PROVIDER ?? "local") as "local" | "s3",
-  s3: {
-    region: process.env.S3_REGION ?? "us-east-1",
-    bucket: process.env.S3_BUCKET ?? "",
-    accessKeyId: process.env.S3_ACCESS_KEY_ID ?? "",
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "",
-    endpoint: process.env.S3_ENDPOINT || undefined,
-    forcePathStyle: bool(process.env.S3_FORCE_PATH_STYLE, false),
-    signedUrlTtl: num(process.env.S3_SIGNED_URL_TTL, 900),
-  },
-
-  // Uploads
-  maxUploadBytes: num(process.env.MAX_UPLOAD_BYTES, 5 * 1024 * 1024),
-
   // Rate limiting
   rateLimitMax: num(process.env.RATE_LIMIT_MAX, 5),
   rateLimitWindow: num(process.env.RATE_LIMIT_WINDOW, 600),
 };
-
-export const ALLOWED_RESUME_MIME = [
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
-  "application/msword", // .doc (some browsers report .docx as this)
-] as const;
-
-export const ALLOWED_RESUME_EXT = [".pdf", ".docx", ".doc"] as const;
