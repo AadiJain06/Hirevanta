@@ -85,6 +85,21 @@ function sendViaConsole(input: SendEmailInput): SendEmailResult {
 }
 
 function errorMessage(err: unknown): string {
+  // Surface nodemailer/SMTP detail (code + response) so failures are diagnosable.
+  if (err && typeof err === "object") {
+    const e = err as {
+      message?: string;
+      code?: string;
+      responseCode?: number;
+      response?: string;
+    };
+    const parts = [
+      e.code ? `[${e.code}]` : null,
+      e.message ?? null,
+      e.response ? `(server: ${e.response})` : null,
+    ].filter(Boolean);
+    if (parts.length) return parts.join(" ");
+  }
   if (err instanceof Error) return err.message;
   return "Unknown email error.";
 }
