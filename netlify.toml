@@ -1,10 +1,8 @@
 [build]
-  command = "prisma generate && prisma migrate deploy && next build"
+  # Clear any inherited PRISMA_CLI_BINARY_TARGETS: the CLI treats "native" in it
+  # as a literal target name and fails. Engine targets live in schema.prisma.
+  command = "unset PRISMA_CLI_BINARY_TARGETS; prisma generate && prisma migrate deploy && next build"
   publish = ".next"
-
-[build.environment]
-  # Prisma query-engine binaries for local dev + Netlify's serverless runtime.
-  PRISMA_CLI_BINARY_TARGETS = "native,rhel-openssl-3.0.x"
 
 # The official plugin wires up Next.js SSR, API routes, middleware,
 # image optimization, and edge functions on Netlify.
