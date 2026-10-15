@@ -1,0 +1,192 @@
+// HireVanta — Prisma schema
+// PostgreSQL + Prisma ORM
+
+generator client {
+  provider      = "prisma-client-js"
+  // "native" for local dev; the rhel targets are what Netlify's serverless
+  // functions run on, so the query engine binary ships with the bundle.
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  REMOTE
+}
+
+enum ExperienceLevel {
+  ENTRY
+  MID
+  SENIOR
+  LEAD
+}
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  NEW
+  UNDER_REVIEW
+  SHORTLISTED
+  INTERVIEW
+  HIRED
+  REJECTED
+}
+
+enum ContactStatus {
+  NEW
+  READ
+  REPLIED
+  CLOSED
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum EmailKind {
+  APPLICATION
+  CONTACT
+}
+
+enum AdminRole {
+  ADMIN
+  SUPER_ADMIN
+}
+
+model Admin {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  role         AdminRole  @default(ADMIN)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  auditLogs    AuditLog[]
+}
+
+model Job {
+  id              String          @id @default(cuid())
+  title           String
+  company         String
+  location        String
+  employmentType  EmploymentType
+  experienceLevel ExperienceLevel
+  description     String
+  responsibilities String?
+  salaryRange     String?
+  tags            String[]        @default([])
+  status          JobStatus       @default(DRAFT)
+  isSample        Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  applications    Application[]
+
+  @@index([status])
+}
+
+model Application {
+  id                String            @id @default(cuid())
+  // Personal
+  fullName          String
+  email             String
+  phone             String
+  location          String
+  linkedin          String?
+  // Professional
+  position          String
+  experience        String
+  skills            String
+  employmentStatus  String?
+  expectedSalary    String?
+  noticePeriod      String?
+  // Additional
+  coverLetter       String?
+  consent           Boolean           @default(false)
+  // Resume (stored securely, key only — never public)
+  resumeKey         String
+  resumeFilename    String
+  resumeMime        String
+  resumeSize        Int
+  // Linkage + workflow
+  job               Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  jobId             String?
+  status            ApplicationStatus @default(NEW)
+  // Anti-abuse / audit
+  ipHash            String?
+  dedupeHash        String?           @unique
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  emailLogs         EmailLog[]
+
+  @@index([status])
+  @@index([email])
+}
+
+model ContactMessage {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  status    ContactStatus @default(NEW)
+  ipHash    String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  emailLogs EmailLog[]
+
+  @@index([status])
+}
+
+model EmailLog {
+  id            String       @id @default(cuid())
+  kind          EmailKind
+  toAddress     String
+  subject       String
+  status        EmailStatus  @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?
+  providerId    String?
+  application   Application?  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId String?
+  contact       ContactMessage? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId     String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actor      Admin?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}

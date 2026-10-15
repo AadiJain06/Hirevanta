@@ -1,0 +1,12 @@
+[build]
+  command = "prisma generate && prisma migrate deploy && next build"
+  publish = ".next"
+
+[build.environment]
+  # Prisma query-engine binaries for local dev + Netlify's serverless runtime.
+  PRISMA_CLI_BINARY_TARGETS = "native,rhel-openssl-3.0.x"
+
+# The official plugin wires up Next.js SSR, API routes, middleware,
+# image optimization, and edge functions on Netlify.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
